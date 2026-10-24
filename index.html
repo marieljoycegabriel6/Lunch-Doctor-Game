@@ -1,0 +1,880 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lunch Doctor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+/* Layout: a bright school clinic. Patient on the left, lunch tray on the right, food shelf along the bottom. One theme by design (a game world), colours set explicitly. */
+:root{
+  color-scheme: light;
+  --bg:#E4F2EC;        /* clinic wall mint */
+  --paper:#FFFDF7;     /* cards, tray */
+  --ink:#1F2E45;       /* outlines and text */
+  --soft:#55657C;      /* secondary text */
+  --line:#C9DDD4;      /* quiet borders */
+  --accent:#EF6C4A;    /* clinic cross, main buttons */
+  --accent-ink:#FFFFFF;
+  --good:#2E8C68;      /* cured */
+  --bad:#C2412D;       /* wrong */
+  --g-grains:#F6D58E; --g-protein:#F4B6A6; --g-milk:#CFE0F5;
+  --g-veg:#BFE3C2; --g-fruit:#FFD1DC; --g-nuts:#E8D5B9;
+  --display:'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
+  --body:'Nunito', 'Segoe UI', system-ui, sans-serif;
+  --r:22px;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:clamp(15px,1.15vw,20px);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:12px;
+  box-sizing:border-box;overflow-x:hidden}
+*{box-sizing:border-box}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:4px solid var(--accent);outline-offset:3px}
+.zh{color:var(--soft);font-weight:700}
+
+/* ---------- buttons ---------- */
+.btn{border:3px solid var(--ink);border-radius:999px;padding:.55em 1.2em;font-family:var(--display);font-weight:600;font-size:1.1em;
+  background:var(--paper);box-shadow:0 5px 0 var(--ink);transition:transform .08s, box-shadow .08s;display:inline-flex;align-items:center;gap:.45em}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.good{background:var(--good);color:#fff}
+.btn.small{font-size:.85em;padding:.35em .9em;box-shadow:0 3px 0 var(--ink)}
+.btn.small:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* ---------- start screen ---------- */
+#start{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:start;padding-block:2vh}
+.hero{display:flex;flex-direction:column;gap:18px}
+.badge{align-self:flex-start;background:var(--paper);border:3px solid var(--ink);border-radius:999px;padding:.3em 1em;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:.8em}
+.title{font-size:clamp(46px,6vw,96px);line-height:.95;font-weight:700}
+.title span{color:var(--accent)}
+.title-zh{font-family:var(--display);font-size:clamp(26px,2.8vw,44px);color:var(--good);font-weight:600}
+.hero-art{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.hero-art svg{width:clamp(110px,12vw,180px);height:auto}
+.panel{background:var(--paper);border:3px solid var(--ink);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel h2{font-size:1.5em}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:2.2em 1fr;gap:12px;align-items:start;counter-increment:s}
+.steps li::before{content:counter(s);font-family:var(--display);font-weight:700;font-size:1.3em;width:1.7em;height:1.7em;border-radius:50%;
+  background:var(--g-grains);border:3px solid var(--ink);display:grid;place-items:center}
+.steps b{font-family:var(--display);font-weight:600;font-size:1.1em}
+.setup{display:grid;gap:14px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.row label{font-weight:800}
+.field{display:flex;flex-direction:column;gap:8px}
+.field > label,.field .row > label{font-weight:800}
+.note{font-weight:800;color:var(--good)}
+textarea{font:inherit;border:3px solid var(--ink);border-radius:12px;padding:.4em .6em;background:#fff;color:var(--ink);width:100%;resize:vertical;min-height:5.5em}
+input[type=number]{font:inherit;border:3px solid var(--ink);border-radius:12px;padding:.3em .5em;width:5em;background:#fff;color:var(--ink)}
+#randomRow[hidden]{display:none}
+select,input[type=text]{font:inherit;border:3px solid var(--ink);border-radius:12px;padding:.35em .6em;background:#fff;color:var(--ink);min-width:0}
+.teams-in{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.check{display:flex;gap:8px;align-items:center;font-weight:700}
+.check input{width:22px;height:22px;accent-color:var(--good)}
+
+/* ---------- game screen ---------- */
+#game{display:grid;grid-template-rows:auto 1fr auto;gap:12px;height:100%;min-height:0}
+.topbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:1.4em}
+.logo svg{width:40px;height:40px}
+.teams{display:flex;gap:8px;flex-wrap:wrap;flex:1;justify-content:center}
+.chip{position:relative;display:flex;align-items:center;gap:8px;background:var(--paper);border:3px solid var(--line);border-radius:999px;padding:.25em .4em .25em .9em;font-weight:800}
+.tname{border:0;background:none;padding:.1em .2em;font-weight:800;display:inline-flex;align-items:center;gap:6px;border-radius:8px}
+.tname svg{width:.9em;height:.9em;opacity:.55}
+.tname:hover{background:rgba(255,255,255,.7)}
+.tedit{font:inherit;font-weight:800;width:9em;border:2px solid var(--ink);border-radius:8px;padding:.1em .4em;background:#fff;color:var(--ink)}
+.chip .pts{font-family:var(--display);font-variant-numeric:tabular-nums;background:var(--bg);border-radius:999px;min-width:2em;text-align:center;padding:.05em .5em;font-size:1.1em}
+.chip.on{border-color:var(--ink);background:var(--g-grains);box-shadow:0 4px 0 var(--ink)}
+.chip.on::after{content:"Doctor";position:absolute;top:-.95em;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.65em;padding:.05em .6em;border-radius:999px;border:2px solid var(--ink);letter-spacing:.05em;text-transform:uppercase}
+.float{position:absolute;right:-6px;top:-18px;font-family:var(--display);font-weight:700;color:var(--good);font-size:1.4em;animation:up 1.2s ease-out forwards;pointer-events:none}
+@keyframes up{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-30px)}}
+.meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.progress{font-weight:800;font-variant-numeric:tabular-nums}
+.stars{font-family:var(--display);font-weight:600;background:var(--paper);border:3px solid var(--ink);border-radius:999px;padding:.15em .8em}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:16px;min-height:0}
+.room{position:relative;background:var(--paper);border:3px solid var(--ink);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;min-width:0}
+.room-floor{position:absolute;left:0;right:0;bottom:0;height:22%;background:repeating-linear-gradient(90deg,#EAF0EC 0 60px,#DCE6E0 60px 120px);border-top:3px solid var(--line)}
+.decor{position:absolute;bottom:18%;width:16%;max-width:110px;transition:transform .4s}
+.decor[hidden]{display:none}
+.decor.plant{left:4%}
+.decor.trophy{right:4%}
+.poster{position:absolute;top:14px;right:14px;background:var(--g-veg);border:3px solid var(--ink);border-radius:12px;padding:.3em .7em;font-family:var(--display);font-weight:600;transform:rotate(3deg);font-size:.85em}
+.bubble{position:relative;z-index:1;background:#fff;border:3px solid var(--ink);border-radius:20px;padding:14px 18px;display:flex;flex-direction:column;gap:8px;min-height:6.5em}
+.bubble::after{content:"";position:absolute;bottom:-17px;left:46%;width:26px;height:26px;background:#fff;border-right:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:rotate(45deg)}
+.bubble .hi{font-weight:800;color:var(--soft);font-size:.9em}
+.say{font-family:var(--display);font-weight:600;font-size:clamp(20px,1.9vw,34px);line-height:1.15}
+.say-zh{font-size:clamp(16px,1.3vw,24px)}
+.bubble.bad{border-color:var(--bad)}
+.bubble.bad .say{color:var(--bad)}
+.bubble.good .say{color:var(--good)}
+.kid{position:relative;z-index:1;display:flex;justify-content:center;flex:1;min-height:0;align-items:flex-end}
+.kid svg{height:100%;max-height:340px;width:auto;max-width:100%}
+.kid.cheer svg{animation:hop .6s ease-in-out 2}
+@keyframes hop{50%{transform:translateY(-16px)}}
+
+.clinic{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:0}
+.tray{background:#B9CFC6;border:3px solid var(--ink);border-radius:28px;padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:1;min-height:0}
+.slot{position:relative;border:3px solid var(--ink);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;min-height:120px;min-width:0;transition:transform .15s}
+.slot svg{width:clamp(60px,6vw,110px);height:auto}
+.slot .food-name{font-family:var(--display);font-weight:600;font-size:1.05em;text-align:center}
+.slot .glabel{position:absolute;left:8px;bottom:6px;font-size:.75em;font-weight:800;background:rgba(255,255,255,.75);border-radius:8px;padding:0 .4em}
+.slot.empty{border-style:dashed;background:rgba(255,255,255,.55) !important}
+.slot.empty .q{font-family:var(--display);font-size:clamp(40px,4vw,72px);font-weight:700;color:var(--soft)}
+.slot.hint{animation:pulse 1s ease-in-out infinite;border-color:var(--accent)}
+.slot.over{transform:scale(1.05);border-color:var(--good);border-style:solid}
+.slot.shake{animation:shake .4s}
+.slot.pop svg{animation:pop .4s ease-out}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(239,108,74,.35)}}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+@keyframes pop{0%{transform:scale(.3)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+.action{background:var(--paper);border:3px solid var(--ink);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.action .stepname{font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:.8em;color:var(--accent)}
+.action .frame{font-family:var(--display);font-weight:600;font-size:clamp(20px,1.8vw,32px)}
+.action .frame u{text-decoration-thickness:3px;text-underline-offset:6px;color:var(--good)}
+.action .txt{flex:1;min-width:220px;display:flex;flex-direction:column;gap:2px}
+.action .btns{display:flex;gap:10px;flex-wrap:wrap}
+
+.shelfwrap{background:var(--paper);border:3px solid var(--ink);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:6px;position:relative}
+.shelfhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:800}
+.shelf{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.food{touch-action:none;user-select:none;-webkit-user-select:none;background:#fff;border:3px solid var(--line);border-radius:16px;width:clamp(78px,6.6vw,118px);
+  padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:grab}
+.food svg{width:70%;height:auto;pointer-events:none}
+.food .fn{font-weight:800;font-size:.85em;text-align:center;line-height:1.1;pointer-events:none}
+.food .fz{font-size:.75em;color:var(--soft);font-weight:700;pointer-events:none}
+.food.sel{border-color:var(--accent);box-shadow:0 0 0 4px rgba(239,108,74,.35);transform:translateY(-4px)}
+.food.used{opacity:.35}
+.shelf.locked .food{filter:grayscale(.8);opacity:.5;cursor:not-allowed}
+.lock{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.lock span{background:var(--ink);color:#fff;border-radius:999px;padding:.4em 1.1em;font-weight:800;font-size:1.05em}
+.ghost{position:fixed;z-index:50;pointer-events:none;width:110px;transform:translate(-50%,-60%) scale(1.1);filter:drop-shadow(0 8px 10px rgba(31,46,69,.35))}
+.ghost svg{width:100%;height:auto}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- end screen ---------- */
+#end{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:20px;align-items:center;text-align:center;padding-block:4vh}
+.podium{width:100%;display:flex;flex-direction:column;gap:10px}
+.rank{display:grid;grid-template-columns:3em 1fr auto;align-items:center;gap:12px;background:var(--paper);border:3px solid var(--ink);border-radius:18px;padding:.6em 1em;text-align:left;font-weight:800;font-size:1.2em}
+.rank .n{font-family:var(--display);font-size:1.5em}
+.rank.first{background:var(--g-grains);box-shadow:0 5px 0 var(--ink)}
+.rank .s{font-family:var(--display);font-variant-numeric:tabular-nums}
+.chant{background:var(--accent);color:#fff;border:3px solid var(--ink);border-radius:var(--r);padding:20px 28px;font-family:var(--display);font-weight:600;font-size:clamp(26px,3vw,48px);line-height:1.15}
+
+/* ---------- role panels ---------- */
+.role{position:relative;z-index:1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:3px solid var(--ink);border-radius:16px;padding:8px 14px}
+.role.pat{background:var(--g-protein)}
+.role.doc{background:var(--g-veg)}
+.rtag{font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:.8em;background:var(--ink);color:#fff;border-radius:999px;padding:.15em .8em;white-space:nowrap}
+.rname{font-family:var(--display);font-weight:700;font-size:clamp(24px,2.4vw,40px);line-height:1.1;min-width:0;overflow-wrap:anywhere}
+.rcue{font-weight:800;font-size:.95em;flex-basis:100%}
+.rcue .zh{font-weight:700}
+.rteam{font-weight:800;background:rgba(255,255,255,.7);border-radius:999px;padding:.1em .7em}
+
+.listen{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;border:2px solid var(--ink);border-radius:999px;background:var(--g-milk);padding:.2em .8em;font-weight:800;font-size:.9em}
+.listen svg{width:1.2em;height:1.2em}
+.listen.playing{background:var(--g-grains)}
+:fullscreen body,body:fullscreen{padding-block:16px}
+.logo-text{display:flex;flex-direction:column;line-height:1.05}
+.logo-sub{font-family:var(--body);font-weight:800;font-size:.55em;color:var(--soft)}
+.logo-sub:empty{display:none}
+.boardlbl{font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:.75em;color:var(--soft)}
+.more{font-weight:800;color:var(--soft)}
+/* ---------- teams reveal ---------- */
+#reveal{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:22px;padding-block:3vh}
+.reveal-head{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
+.reveal-head .badge{align-self:center}
+.reveal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.tcard{background:var(--paper);border:3px solid var(--ink);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.tcard input{font-family:var(--display);font-weight:600;font-size:1.3em;width:100%}
+.tcard ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.tcard li{background:var(--bg);border-radius:999px;padding:.2em .8em;font-weight:800}
+.tcard .bonus{align-self:flex-start;background:var(--g-grains);border:2px solid var(--ink);border-radius:999px;padding:.15em .8em;font-weight:800;font-size:.85em}
+.tcard .cnt{color:var(--soft);font-weight:800;font-size:.85em}
+
+/* ---------- random picker ---------- */
+.picker{position:fixed;inset:0;z-index:70;background:rgba(31,46,69,.55);display:grid;place-items:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.picker[hidden]{display:none}
+.pcard{background:var(--paper);border:4px solid var(--ink);border-radius:28px;padding:24px;width:min(860px,100%);display:flex;flex-direction:column;gap:18px;text-align:center;box-shadow:0 10px 0 var(--ink)}
+.pcard .stepname{font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.reels{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.reel{border:3px solid var(--ink);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:6px;align-items:center;min-width:0}
+.reel.doc{background:var(--g-veg)}
+.reel.pat{background:var(--g-protein)}
+.rl{font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:.9em}
+.rn{font-family:var(--display);font-weight:700;font-size:clamp(34px,5vw,80px);line-height:1.05;overflow-wrap:anywhere}
+.rn.spin{color:var(--soft)}
+.rn.land{animation:pop .45s ease-out}
+.rt{font-weight:700;color:var(--ink);font-size:.9em}
+.who{font-weight:800;font-size:.95em}
+.who b{color:var(--accent)}
+@media (max-width:600px){.reels{grid-template-columns:1fr}}
+
+/* ---------- toast & confetti ---------- */
+.toast{position:fixed;left:50%;top:calc(18% + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:#fff;font-family:var(--display);font-weight:600;
+  font-size:clamp(22px,2.4vw,40px);padding:.5em 1.2em;border-radius:999px;border:3px solid #fff;animation:toast 2.2s ease forwards;pointer-events:none;white-space:nowrap}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,-10px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:55;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:12px;height:18px;border-radius:3px;animation:fall 1.6s ease-in forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg)}}
+
+@media (max-width: 900px){
+  #start{grid-template-columns:1fr}
+  .stage{grid-template-columns:1fr}
+  .kid svg{max-height:220px}
+  #game{height:auto}
+}
+@media (max-width: 520px){
+  .tray{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+</style>
+
+<!-- ===== START ===== -->
+<section id="start">
+  <div class="hero">
+    <span class="badge" id="teacherBadge">Teacher Joyce’s Health Class</span>
+    <h1 class="title">Lunch <span>Doctor</span></h1>
+    <p class="title-zh">午餐醫生</p>
+    <p style="font-size:1.15em;max-width:32em">Patients come to your clinic feeling unwell. Look at their lunch, find the missing food group, and give them the right food.</p>
+    <div class="hero-art" id="heroArt" aria-hidden="true"></div>
+  </div>
+  <div class="panel">
+    <h2>How to play <span class="zh" style="font-size:.7em">怎麼玩</span></h2>
+    <ol class="steps">
+      <li><div><b>The picker chooses a doctor and a patient.</b><br><span class="zh">隨機抽出一位醫生和一位病人。</span></div></li>
+      <li><div><b>Patient:</b> read the speech bubble aloud.<br><span class="zh">病人：大聲唸出對話框。</span></div></li>
+      <li><div><b>Doctor:</b> say <i>“This lunch has no ___.”</i> Teacher taps ✓.<br><span class="zh">醫生：說出缺少什麼，老師按 ✓。</span></div></li>
+      <li><div><b>Doctor:</b> drag the missing food to the tray and say <i>“Add ___.”</i><br><span class="zh">醫生：把食物拖到空格，說出句子。</span></div></li>
+    </ol>
+    <div class="setup">
+      <div class="row">
+        <label for="classSel">Class 班級</label>
+        <select id="classSel"><option>Class 1</option><option>Class 2</option><option>Class 3</option><option>Class 4</option><option>Class 5</option><option>Class 6</option></select>
+        <span class="zh" id="savedNote">Names are saved for each class.</span>
+      </div>
+      <div class="field">
+        <label for="patientNames">Student names 學生名字 <span class="zh">(one name per line, or use commas)</span></label>
+        <p class="zh" style="font-size:.9em">Each turn, the picker chooses a doctor and a patient. Everyone is the doctor once and earns their own points. 每位學生當一次醫生，自己得分。</p>
+        <textarea id="patientNames" rows="5" placeholder="Amy&#10;Kevin&#10;Iris"></textarea>
+        <p class="note" id="patientNote"></p>
+      </div>
+      <label class="check"><input type="checkbox" id="showLabels" checked> Show group names on the tray (easier)</label>
+      <label class="check"><input type="checkbox" id="soundOn" checked> Sound effects 音效</label>
+      <label class="check"><input type="checkbox" id="voiceOn" checked> Voice reads the sentences 語音朗讀</label>
+      <label class="check"><input type="checkbox" id="musicOn"> Background music 背景音樂</label>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="startBtn" style="font-size:1.4em">Open the clinic</button>
+      <button class="btn" id="fsBtn2" type="button">Full screen 全螢幕</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== GAME ===== -->
+<section id="game" hidden>
+  <div class="topbar">
+    <div class="logo"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="2" y="2" width="36" height="36" rx="10" fill="#EF6C4A" stroke="#1F2E45" stroke-width="3"/><path d="M16 9h8v7h7v8h-7v7h-8v-7H9v-8h7z" fill="#fff"/></svg><span class="logo-text">Lunch Doctor<span class="logo-sub" id="teacherSub"></span></span></div>
+    <div class="teams" id="teams"></div>
+    <div class="meta">
+      <span class="progress" id="progress"></span>
+      <span class="stars" id="level"></span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="room" id="room">
+      <div class="room-floor" aria-hidden="true"></div>
+      <div class="poster" id="poster" hidden>Eat 6 groups! 六大類</div>
+      <svg class="decor plant" id="plant" hidden viewBox="0 0 120 160" aria-hidden="true"><path d="M30 110h60l-8 46H38z" fill="#EF6C4A" stroke="#1F2E45" stroke-width="5" stroke-linejoin="round"/><path d="M60 110C60 70 30 60 20 40c30 0 40 30 40 70zM60 110c0-50 25-70 45-80-5 35-25 55-45 80zM60 110c0-40-5-70 0-100 15 30 10 70 0 100z" fill="#4FAF68" stroke="#1F2E45" stroke-width="5" stroke-linejoin="round"/></svg>
+      <svg class="decor trophy" id="trophy" hidden viewBox="0 0 120 160" aria-hidden="true"><path d="M30 20h60v40c0 22-14 36-30 36S30 82 30 60z" fill="#F6C343" stroke="#1F2E45" stroke-width="5" stroke-linejoin="round"/><path d="M30 34H12c0 22 10 32 22 32M90 34h18c0 22-10 32-22 32" fill="none" stroke="#1F2E45" stroke-width="5"/><path d="M52 96h16v24H52z" fill="#F6C343" stroke="#1F2E45" stroke-width="5"/><path d="M34 120h52v20H34z" fill="#8A5A2B" stroke="#1F2E45" stroke-width="5"/></svg>
+      <div class="role pat" id="patRole"></div>
+      <div class="bubble" id="bubble" aria-live="polite"></div>
+      <div class="kid" id="kid"></div>
+    </div>
+
+    <div class="clinic">
+      <div class="role doc" id="docRole"></div>
+      <div class="action" id="action"></div>
+      <div class="tray" id="tray" aria-label="Lunch tray"></div>
+    </div>
+  </div>
+
+  <div class="shelfwrap">
+    <div class="shelfhead">
+      <span>Food shelf for the doctor <span class="zh">醫生的食物櫃</span></span>
+      <div class="tools">
+        <button class="btn small" id="soundBtn" type="button"></button>
+        <button class="btn small" id="voiceBtn" type="button"></button>
+        <button class="btn small" id="musicBtn" type="button"></button>
+        <button class="btn small" id="fsBtn" type="button">Full screen</button>
+        <button class="btn small" id="skipBtn" type="button">Skip patient</button>
+        <button class="btn small" id="endBtn" type="button">End game</button>
+      </div>
+    </div>
+    <div class="shelf" id="shelf"></div>
+    <div class="lock" id="lock"><span>Say the sentence first · 先說句子</span></div>
+  </div>
+</section>
+
+<!-- ===== RANDOM PICKER ===== -->
+<div class="picker" id="picker" hidden>
+  <div class="pcard" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+    <p class="stepname" id="pickTitle">Who is next? 誰上場？</p>
+    <div class="reels">
+      <div class="reel doc"><span class="rl">Doctor 醫生</span><span class="rn" id="rDoc">?</span><span class="rt" id="rTeam"></span></div>
+      <div class="reel pat"><span class="rl">Patient 病人</span><span class="rn" id="rPat">?</span><span class="rt">Come and read the bubble! 來唸對話框</span></div>
+    </div>
+    <div class="row" style="justify-content:center">
+      <button class="btn small" id="rerollBtn" type="button" disabled>Pick again 重抽</button>
+      <button class="btn primary" id="goBtn" type="button" disabled>Go! 開始</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== END ===== -->
+<section id="end" hidden>
+  <span class="badge">Clinic closed · 診所休息了</span>
+  <h1 class="title" id="winner" style="font-size:clamp(40px,5vw,80px)"></h1>
+  <p id="curedLine" style="font-size:1.2em;font-weight:800"></p>
+  <div class="podium" id="podium"></div>
+  <div class="chant">Eat them all, big and small,<br>six groups every day!</div>
+  <p class="zh" id="byeLine" style="font-size:1.1em"></p>
+  <button class="btn primary" id="againBtn" style="font-size:1.3em">Play again</button>
+</section>
+
+<script>
+(function(){
+"use strict";
+const S='stroke="#1F2E45" stroke-width="6" stroke-linejoin="round"';
+const ICONS={
+ rice:`<ellipse cx="100" cy="96" rx="70" ry="40" fill="#FBFBF5" ${S}/><path d="M22 100H178Q170 172 100 172Q30 172 22 100Z" fill="#4A90C8" ${S}/><path d="M44 122H156" stroke="#FFF8EC" stroke-width="8" stroke-linecap="round"/><rect x="72" y="170" width="56" height="16" rx="6" fill="#3A73A4" ${S}/>`,
+ sweetpotato:`<path d="M24 120Q30 60 100 62Q170 64 178 92Q182 130 110 146Q40 160 24 120Z" fill="#A65A86" ${S}/><path d="M60 100Q90 86 130 92" fill="none" stroke="#7E3F64" stroke-width="5" stroke-linecap="round"/><path d="M178 92L192 84M24 120L10 128" stroke="#1F2E45" stroke-width="6" stroke-linecap="round"/>`,
+ bread:`<path d="M30 110Q30 50 100 50Q170 50 170 110L162 166H38Z" fill="#D99A4E" ${S}/><path d="M50 112Q50 70 100 70Q150 70 150 112L144 152H56Z" fill="#FBE7BE"/>`,
+ egg:`<path d="M40 110Q30 50 90 44Q150 30 168 84Q186 140 130 160Q60 182 40 110Z" fill="#FFFFFF" ${S}/><circle cx="104" cy="104" r="34" fill="#F6B82E" ${S}/><circle cx="92" cy="92" r="9" fill="#FFE39A"/>`,
+ fish:`<path d="M150 100L192 64V136Z" fill="#F28C28" ${S}/><ellipse cx="94" cy="100" rx="78" ry="48" fill="#7FB3DD" ${S}/><circle cx="50" cy="88" r="10" fill="#1F2E45"/><path d="M90 70Q106 100 90 130" fill="none" stroke="#1F2E45" stroke-width="6" stroke-linecap="round"/>`,
+ tofu:`<path d="M40 80L100 50L160 80L100 110Z" fill="#FFFBEF" ${S}/><path d="M40 80V140L100 170V110Z" fill="#F1E6C8" ${S}/><path d="M160 80V140L100 170V110Z" fill="#E6D7AE" ${S}/>`,
+ milk:`<path d="M58 70L80 30H120L142 70Z" fill="#CFE0F5" ${S}/><rect x="58" y="70" width="84" height="110" rx="6" fill="#FFFFFF" ${S}/><rect x="72" y="100" width="56" height="44" rx="8" fill="#4A90C8"/>`,
+ yogurt:`<path d="M50 60H150L136 176H64Z" fill="#FFFFFF" ${S}/><path d="M56 104H144L140 136H60Z" fill="#F49AAE"/><rect x="42" y="44" width="116" height="20" rx="8" fill="#F49AAE" ${S}/>`,
+ cheese:`<path d="M24 150L170 60L178 150Z" fill="#F7D046" ${S}/><path d="M24 150L178 150L178 172L24 172Z" fill="#E8B92E" ${S}/><circle cx="120" cy="124" r="12" fill="#E8B92E"/><circle cx="152" cy="104" r="8" fill="#E8B92E"/><circle cx="80" cy="138" r="7" fill="#E8B92E"/>`,
+ broccoli:`<path d="M88 110L80 182H120L112 110Z" fill="#9BCB6A" ${S}/><circle cx="68" cy="90" r="38" fill="#3E9B5A" ${S}/><circle cx="132" cy="90" r="38" fill="#3E9B5A" ${S}/><circle cx="100" cy="62" r="42" fill="#4FAF68" ${S}/>`,
+ cabbage:`<circle cx="100" cy="104" r="76" fill="#A8D88A" ${S}/><path d="M100 30Q70 104 100 178M100 30Q130 104 100 178M40 74Q100 94 160 74" fill="none" stroke="#5E9E44" stroke-width="6" stroke-linecap="round"/>`,
+ carrot:`<path d="M70 70L130 70L104 190Z" fill="#F28C28" ${S}/><path d="M84 96H112M88 124H108" stroke="#C9661A" stroke-width="5" stroke-linecap="round"/><path d="M100 70Q80 30 70 20M100 70Q100 30 100 12M100 70Q120 30 132 22" fill="none" stroke="#3E9B5A" stroke-width="10" stroke-linecap="round"/>`,
+ banana:`<path d="M30 60Q40 170 170 150Q178 140 166 134Q70 140 56 52Q44 44 30 60Z" fill="#F7D046" ${S}/><path d="M30 60L24 44" stroke="#1F2E45" stroke-width="8" stroke-linecap="round"/>`,
+ apple:`<path d="M100 60Q60 36 40 76Q24 120 54 160Q76 186 100 170Q124 186 146 160Q176 120 160 76Q140 36 100 60Z" fill="#E04B3C" ${S}/><path d="M100 60L104 26" stroke="#5A4A2A" stroke-width="8" stroke-linecap="round"/><path d="M108 40Q130 18 150 30Q132 52 108 40Z" fill="#4FAF68" stroke="#1F2E45" stroke-width="5"/><circle cx="68" cy="92" r="10" fill="#F28C7C"/>`,
+ guava:`<circle cx="100" cy="104" r="72" fill="#8CC56A" ${S}/><circle cx="100" cy="104" r="50" fill="#F49AAE"/><circle cx="88" cy="96" r="5" fill="#FFF3D6"/><circle cx="112" cy="100" r="5" fill="#FFF3D6"/><circle cx="100" cy="118" r="5" fill="#FFF3D6"/><circle cx="84" cy="116" r="5" fill="#FFF3D6"/><circle cx="116" cy="120" r="5" fill="#FFF3D6"/><path d="M100 32V16" stroke="#5A4A2A" stroke-width="8" stroke-linecap="round"/>`,
+ peanuts:`<g transform="rotate(-30 100 100)"><ellipse cx="100" cy="64" rx="40" ry="44" fill="#D9A866" ${S}/><ellipse cx="100" cy="138" rx="40" ry="44" fill="#D9A866" ${S}/><rect x="66" y="88" width="68" height="26" fill="#D9A866"/><path d="M80 52H120M76 76H124M76 128H124M80 152H120" stroke="#B88445" stroke-width="5" stroke-linecap="round"/></g>`,
+ sesame:`<path d="M24 110H176Q170 176 100 176Q30 176 24 110Z" fill="#6E8FB3" ${S}/><ellipse cx="100" cy="110" rx="76" ry="22" fill="#2A2A2A" ${S}/><g fill="#F3E7C9"><ellipse cx="70" cy="104" rx="6" ry="3"/><ellipse cx="96" cy="112" rx="6" ry="3"/><ellipse cx="124" cy="104" rx="6" ry="3"/><ellipse cx="140" cy="114" rx="6" ry="3"/><ellipse cx="82" cy="118" rx="6" ry="3"/><ellipse cx="110" cy="98" rx="6" ry="3"/></g>`,
+ cola:`<path d="M112 40L140 8" stroke="#1F2E45" stroke-width="12" stroke-linecap="round"/><path d="M54 44H146L132 184H68Z" fill="#C8372D" ${S}/><rect x="48" y="34" width="104" height="18" rx="6" fill="#FFFFFF" ${S}/><path d="M66 100Q100 80 134 100" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>`,
+ chips:`<path d="M50 30H150L140 100L150 176H50L60 100Z" fill="#F2C94C" ${S}/><circle cx="100" cy="104" r="32" fill="#E04B3C" stroke="#1F2E45" stroke-width="5"/><path d="M52 46H148M52 160H148" stroke="#1F2E45" stroke-width="5"/>`
+};
+const icon=(id)=>`<svg viewBox="0 0 200 200" aria-hidden="true">${ICONS[id]}</svg>`;
+
+const GROUPS=[
+ {id:'grains', en:'grains', zh:'全榖雜糧類', c:'var(--g-grains)'},
+ {id:'protein',en:'protein',zh:'豆魚蛋肉類', c:'var(--g-protein)'},
+ {id:'milk',   en:'milk',   zh:'乳品類',     c:'var(--g-milk)'},
+ {id:'veg',    en:'vegetables',zh:'蔬菜類',  c:'var(--g-veg)'},
+ {id:'fruit',  en:'fruit',  zh:'水果類',     c:'var(--g-fruit)'},
+ {id:'nuts',   en:'nuts',   zh:'油脂與堅果種子類', c:'var(--g-nuts)'}
+];
+const G=Object.fromEntries(GROUPS.map(g=>[g.id,g]));
+const FOODS=[
+ {id:'rice',en:'rice',zh:'飯',g:'grains'},{id:'sweetpotato',en:'sweet potato',zh:'地瓜',g:'grains'},{id:'bread',en:'bread',zh:'麵包',g:'grains'},
+ {id:'egg',en:'egg',zh:'蛋',g:'protein'},{id:'fish',en:'fish',zh:'魚',g:'protein'},{id:'tofu',en:'tofu',zh:'豆腐',g:'protein'},
+ {id:'milk',en:'milk',zh:'牛奶',g:'milk'},{id:'yogurt',en:'yogurt',zh:'優格',g:'milk'},{id:'cheese',en:'cheese',zh:'起司',g:'milk'},
+ {id:'broccoli',en:'broccoli',zh:'花椰菜',g:'veg'},{id:'cabbage',en:'cabbage',zh:'高麗菜',g:'veg'},{id:'carrot',en:'carrot',zh:'紅蘿蔔',g:'veg'},
+ {id:'banana',en:'banana',zh:'香蕉',g:'fruit'},{id:'apple',en:'apple',zh:'蘋果',g:'fruit'},{id:'guava',en:'guava',zh:'芭樂',g:'fruit'},
+ {id:'peanuts',en:'peanuts',zh:'花生',g:'nuts'},{id:'sesame',en:'sesame',zh:'芝麻',g:'nuts'},
+ {id:'cola',en:'cola',zh:'可樂',g:'junk'},{id:'chips',en:'chips',zh:'洋芋片',g:'junk'}
+];
+const F=Object.fromEntries(FOODS.map(f=>[f.id,f]));
+const PROBLEMS={
+ grains:{en:"I'm so tired. I have no energy.",zh:'我好累，沒有力氣。',why:'Grains give you energy.',whyzh:'全榖雜糧給你能量。'},
+ protein:{en:'I want to grow tall and strong!',zh:'我想長高、長壯！',why:'Protein helps your body grow.',whyzh:'豆魚蛋肉幫助身體成長。'},
+ milk:{en:'My bones and teeth are not strong.',zh:'我的骨頭和牙齒不夠強壯。',why:'Milk makes bones and teeth strong.',whyzh:'乳品讓骨頭和牙齒強壯。'},
+ veg:{en:"I can't poop!",zh:'我便秘了，大不出來！',why:'Vegetables help you go to the toilet.',whyzh:'蔬菜幫助排便。'},
+ fruit:{en:'I get sick a lot.',zh:'我常常生病。',why:'Fruit helps you stay healthy.',whyzh:'水果幫助你保持健康。'},
+ nuts:{en:'I get hungry again so fast!',zh:'我很快又餓了！',why:'A few nuts help you feel full.',whyzh:'一點堅果讓你有飽足感。'}
+};
+const PEOPLE=[
+ {name:'Amy',skin:'#F5CBA7',hair:'#2B1D14',style:1,shirt:'#7FB3DD'},{name:'Kevin',skin:'#E8B48C',hair:'#1E1A18',style:0,shirt:'#F6C343'},
+ {name:'Iris',skin:'#F3C9A2',hair:'#3A2618',style:2,shirt:'#F49AAE'},{name:'Jason',skin:'#D9A27A',hair:'#1E1A18',style:0,shirt:'#4FAF68'},
+ {name:'Vivian',skin:'#F5CBA7',hair:'#1E1A18',style:1,shirt:'#B79CE0'},{name:'Leo',skin:'#C98E66',hair:'#2B1D14',style:0,shirt:'#EF6C4A'},
+ {name:'Grace',skin:'#EDBE97',hair:'#4A2E1C',style:2,shirt:'#8CC56A'},{name:'Eric',skin:'#F3C9A2',hair:'#1E1A18',style:0,shirt:'#5C7FB0'},
+ {name:'Cindy',skin:'#D9A27A',hair:'#1E1A18',style:1,shirt:'#F2C94C'},{name:'Tony',skin:'#E8B48C',hair:'#3A2618',style:0,shirt:'#E04B3C'},
+ {name:'Mei',skin:'#F5CBA7',hair:'#2B1D14',style:2,shirt:'#7FC9C0'},{name:'Ben',skin:'#C98E66',hair:'#1E1A18',style:0,shirt:'#F28C28'}
+];
+
+function kidSVG(p,mood){
+  const k='stroke="#1F2E45" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"';
+  let back='',top='';
+  if(p.style===1){back=`<path d="M52 110Q38 200 66 214L82 120Z" fill="${p.hair}" ${k}/><path d="M188 110Q202 200 174 214L158 120Z" fill="${p.hair}" ${k}/>`;}
+  if(p.style===2){back=`<circle cx="120" cy="44" r="24" fill="${p.hair}" ${k}/>`;}
+  top=`<path d="M50 118Q48 48 120 46Q192 48 190 118Q172 84 140 82Q130 96 104 92Q74 90 50 118Z" fill="${p.hair}" ${k}/>`;
+  let face;
+  if(mood==='happy'){
+    face=`<path d="M86 122Q98 108 110 122M130 122Q142 108 154 122" fill="none" ${k}/><circle cx="80" cy="146" r="11" fill="#F49AAE" opacity=".8"/><circle cx="160" cy="146" r="11" fill="#F49AAE" opacity=".8"/><path d="M94 150Q120 184 146 150Z" fill="#C8372D" ${k}/>`;
+  }else{
+    face=`<path d="M82 108L106 100M158 108L134 100" fill="none" ${k}/><circle cx="98" cy="124" r="7" fill="#1F2E45"/><circle cx="142" cy="124" r="7" fill="#1F2E45"/><path d="M102 164Q120 148 138 164" fill="none" ${k}/><path d="M156 134Q150 148 156 154Q162 148 156 134Z" fill="#7FB3DD" stroke="#1F2E45" stroke-width="3"/>`;
+  }
+  return `<svg viewBox="0 0 240 270" role="img" aria-label="${p.name}, ${mood==='happy'?'happy':'feeling unwell'}">${back}
+  <path d="M40 270Q40 196 120 196Q200 196 200 270Z" fill="${p.shirt}" ${k}/>
+  <path d="M104 196Q120 214 136 196" fill="none" ${k}/>
+  <circle cx="120" cy="124" r="72" fill="${p.skin}" ${k}/>${top}${face}</svg>`;
+}
+
+/* ---------- state ---------- */
+let st=null;
+const $=(id)=>document.getElementById(id);
+const esc=(s)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle=(a)=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const pick=(a)=>a[Math.floor(Math.random()*a.length)];
+const cap=(s)=>s.charAt(0).toUpperCase()+s.slice(1);
+
+function parseNames(){
+  return $('patientNames').value.split(/[\n,，、;]+/).map(s=>s.trim()).filter(Boolean).map(s=>s.slice(0,18)).slice(0,40);
+}
+function updatePatientNote(){
+  const n=new Set(parseNames()).size;
+  const ok=n>=2;
+  $('patientNote').textContent=ok
+    ? `${n} students · ${n} 位學生 · ${n} turns · everyone is the doctor once`
+    : 'Type at least 2 student names to start. 請輸入至少 2 個學生名字。';
+  $('patientNote').style.color=ok?'var(--good)':'var(--bad)';
+  $('startBtn').disabled=!ok;
+}
+
+function makePatients(n,names){
+  const ids=GROUPS.map(g=>g.id);
+  const list=[];
+  let singles=shuffle(ids);
+  const people=shuffle(PEOPLE);
+  for(let i=0;i<n;i++){
+    let missing;
+    if(i<6){missing=[singles[i]];}
+    else{const s=shuffle(ids);missing=[s[0],s[1]];}
+    const tray={};
+    ids.forEach(g=>{ if(!missing.includes(g)) tray[g]=pick(FOODS.filter(f=>f.g===g)).id; });
+    const look=people[i%people.length];
+    list.push({missing,tray,person:names[i]?{...look,name:names[i]}:look});
+  }
+  return list;
+}
+
+function newGame(){
+  saveClass();
+  const names=[...new Set(parseNames())];
+  if(names.length<2){updatePatientNote();$('patientNames').focus();return false;}
+  st={screen:'game',players:names.map(n=>({name:n,score:0})),students:names,showLabels:$('showLabels').checked,sound:$('soundOn').checked,voice:$('voiceOn').checked,music:$('musicOn').checked,
+      patients:[],total:0,idx:0,phase:'pick',wrong:0,perfect:true,hint:false,msg:null,cured:0,shelfOrder:shuffle(FOODS.map(f=>f.id))};
+  buildRounds();show('game');startRound();
+  if(st.music) startMusic();
+  return true;
+}
+
+/* ---------- turns from the student list ---------- */
+function buildRounds(){
+  // every student is the doctor once, in random order
+  const order=shuffle(st.students).map(d=>({doctor:d}));
+  // patients: everyone once before anyone repeats, never the doctor themself
+  let pool=[];
+  const pats=order.map(r=>{
+    if(!pool.some(x=>x!==r.doctor)) pool=shuffle(st.students);
+    const j=pool.findIndex(x=>x!==r.doctor);
+    return pool.splice(j,1)[0];
+  });
+  st.total=order.length;
+  st.patients=makePatients(order.length,pats).map((p,i)=>({...p,doctor:order[i].doctor}));
+}
+
+function startRound(){
+  st.wrong=0;st.perfect=true;st.hint=false;st.msg=null;st.selected=null;
+  st.phase='pick';render();runPicker();
+}
+
+/* ---------- random picker ---------- */
+let spinT=null;
+const reduced=()=>window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function spinReel(el,pool,final,ms,done){
+  clearInterval(spinT);el.classList.remove('land');
+  if(!ms){el.textContent=final;done();return;}
+  el.classList.add('spin');const t0=performance.now();
+  spinT=setInterval(()=>{
+    el.textContent=pick(pool);sfx('tick');
+    if(performance.now()-t0>ms){
+      clearInterval(spinT);el.textContent=final;el.classList.remove('spin');void el.offsetWidth;el.classList.add('land');done();
+    }
+  },85);
+}
+function runPicker(){
+  const p=cur();
+  $('picker').hidden=false;
+  $('goBtn').disabled=true;$('rerollBtn').disabled=true;
+  $('rTeam').textContent='';
+  $('rDoc').textContent='?';$('rPat').textContent='?';
+  const ms=reduced()?0:1300;
+  spinReel($('rDoc'),st.students,p.doctor,ms,()=>{
+    $('rTeam').textContent='Your turn! 輪到你了';
+    sfx('ding');
+    setTimeout(()=>spinReel($('rPat'),st.students,p.person.name,ms,()=>{
+      sfx('ding');$('goBtn').disabled=false;$('rerollBtn').disabled=false;$('goBtn').focus();
+      speak(`Doctor, ${p.doctor}! Patient, ${p.person.name}!`,'en-US');
+    }),ms?350:0);
+  });
+}
+$('rerollBtn').onclick=()=>{
+  const p=cur();
+  // new doctor: swap with someone who has not had a turn yet (if anyone is left)
+  const later=[];
+  for(let j=st.idx+1;j<st.patients.length;j++) later.push(j);
+  if(later.length){const j=pick(later);const d=p.doctor;p.doctor=st.patients[j].doctor;st.patients[j].doctor=d;
+    if(st.patients[j].person.name===st.patients[j].doctor){const o=st.students.filter(x=>x!==st.patients[j].doctor);st.patients[j].person.name=pick(o);}}
+  // new patient: anyone except the doctor (and a different person if possible)
+  let opts=st.students.filter(x=>x!==p.doctor&&x!==p.person.name);
+  if(!opts.length) opts=st.students.filter(x=>x!==p.doctor);
+  p.person={...p.person,name:pick(opts)};
+  runPicker();
+};
+$('goBtn').onclick=()=>{$('picker').hidden=true;st.phase='diagnose';sfx('bell');render();};
+
+/* ---------- saved classes (this browser only) ---------- */
+const KEY='lunch-doctor-classes';
+function readStore(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){return {};}}
+function writeStore(o){try{localStorage.setItem(KEY,JSON.stringify(o));}catch(e){}}
+function saveClass(){
+  const o=readStore();
+  const prev=o[$('classSel').value]||{};
+  o[$('classSel').value]={...prev,patients:$('patientNames').value};
+  o._last=$('classSel').value;
+  writeStore(o);
+}
+function loadClass(name){
+  const c=readStore()[name];
+  $('patientNames').value=(c&&c.patients)||'';
+  updatePatientNote();
+}
+
+function show(which){
+  $('start').hidden=which!=='start';$('game').hidden=which!=='game';$('end').hidden=which!=='end';
+  if(which!=='game'){$('picker').hidden=true;clearInterval(spinT);}
+  if(st) st.screen=which;
+}
+
+/* ---------- rendering ---------- */
+function cur(){return st.patients[st.idx];}
+function docIdx(){const p=cur();return p?st.players.findIndex(x=>x.name===p.doctor):-1;}
+function boardHTML(){
+  // a short leaderboard: the top 6, plus the doctor on duty
+  const di=docIdx();
+  const sorted=st.players.map((pl,i)=>({...pl,i})).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
+  let shown=sorted.slice(0,6);
+  if(di>=0&&!shown.some(x=>x.i===di)) shown=[...shown.slice(0,5),sorted.find(x=>x.i===di)];
+  const more=st.players.length-shown.length;
+  return `<span class="boardlbl">Top doctors 排行榜</span>`+shown.map(x=>`<div class="chip${x.i===di&&st.phase!=='pick'?' on':''}" id="chip${x.i}"><span>${esc(x.name)}</span><span class="pts">${x.score}</span></div>`).join('')
+    +(more>0?`<span class="more">+${more} more</span>`:'');
+}
+function level(){return Math.min(4,1+Math.floor(st.cured/3));}
+
+function render(){
+  const p=cur();
+  // leaderboard
+  $('teams').innerHTML=boardHTML();
+  $('progress').textContent=`Turn ${st.idx+1} of ${st.total}`;
+  const lv=level();
+  $('level').textContent='Clinic '+'★'.repeat(lv)+'☆'.repeat(4-lv);
+  $('plant').hidden=lv<2; $('poster').hidden=lv<3; $('trophy').hidden=lv<4;
+  $('soundBtn').textContent=st.sound?'Sound: on':'Sound: off';
+  $('voiceBtn').textContent=st.voice?'Voice: on':'Voice: off';
+  $('musicBtn').textContent=st.music?'Music: on':'Music: off';
+  // bubble
+  const b=$('bubble');
+  b.className='bubble'+(st.msg?(' '+st.msg.kind):'')+(st.phase==='cured'?' good':'');
+  if(st.phase==='pick'){
+    b.innerHTML=`<p class="say">Next patient, please!</p><p class="say-zh zh">下一位病人！</p>`;
+  }else if(st.phase==='cured'){
+    b.innerHTML=`<p class="say">Thank you, Doctor! I feel great!</p><p class="say-zh zh">謝謝醫生！我覺得好多了！</p>`;
+  }else if(st.msg){
+    b.innerHTML=`<p class="say">${esc(st.msg.en)}</p><p class="say-zh zh">${esc(st.msg.zh)}</p>`;
+  }else{
+    b.innerHTML=`<p class="hi">Hi Doctor${p.doctor?' '+esc(p.doctor):''}! I'm ${esc(p.person.name)}.</p>`+p.missing.map(g=>`<p class="say">${esc(PROBLEMS[g].en)}</p><p class="say-zh zh">${esc(PROBLEMS[g].zh)}</p>`).join('');
+  }
+  // "Listen" button: the voice reads the bubble as a model for the patient
+  let sayText='';
+  if(st.phase==='cured') sayText='Thank you, Doctor! I feel great!';
+  else if(st.msg) sayText=st.msg.en;
+  else if(st.phase!=='pick') sayText=`Hi Doctor ${p.doctor||''}! I'm ${p.person.name}. `+p.missing.map(g=>PROBLEMS[g].en).join(' ');
+  if(sayText){
+    b.insertAdjacentHTML('beforeend',`<button class="listen" type="button" id="listenBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Listen 聽</button>`);
+    $('listenBtn').onclick=()=>speak(sayText,'en-US',true);
+  }
+  // kid
+  const k=$('kid');
+  k.innerHTML=kidSVG(p.person,st.phase==='cured'?'happy':'sad');
+  k.className='kid'+(st.phase==='cured'?' cheer':'');
+  // tray
+  $('tray').innerHTML=GROUPS.map(g=>{
+    const fid=p.tray[g.id];
+    const lab=st.showLabels?`<span class="glabel">${g.en} ${g.zh}</span>`:'';
+    if(fid){const f=F[fid];return `<div class="slot${st.justFilled===g.id?' pop':''}" data-g="${g.id}" style="background:${g.c}">${icon(fid)}<span class="food-name">${esc(f.en)}</span>${lab}</div>`;}
+    return `<div class="slot empty${st.hint?' hint':''}" data-g="${g.id}" style="background:${g.c}" aria-label="Empty space"><span class="q">?</span>${lab}</div>`;
+  }).join('');
+  st.justFilled=null;
+  // action bar
+  const a=$('action');
+  const missingNow=p.missing.filter(g=>!p.tray[g]);
+  if(st.phase==='pick'){
+    a.innerHTML=`<div class="txt"><span class="stepname">Picking the doctor… 抽籤中</span></div>`;
+  }else if(st.phase==='diagnose'){
+    a.innerHTML=`<div class="txt"><span class="stepname">Doctor, step 1 · Say 醫生說</span><span class="frame">“This lunch has no <u>&nbsp;_____&nbsp;</u>.”</span></div>
+      <div class="btns"><button class="btn small" type="button" id="hintBtn">Hint 提示</button><button class="btn good" type="button" id="saidBtn">✓ They said it!</button></div>`;
+    $('hintBtn').onclick=()=>{st.hint=true;sfx('tap');render();};
+    $('saidBtn').onclick=()=>{st.phase='treat';sfx('ding');render();};
+  }else if(st.phase==='treat'){
+    a.innerHTML=`<div class="txt"><span class="stepname">Doctor, step 2 · Pick and say 醫生選食物</span><span class="frame">Drag the food to the empty space. Say: “Add <u>&nbsp;_____&nbsp;</u>.”</span>
+      <span class="zh">${missingNow.length>1?'還有 '+missingNow.length+' 個空格':'把食物拖到空格'}</span></div>
+      <div class="btns"><button class="btn small" type="button" id="hintBtn">Hint 提示</button></div>`;
+    $('hintBtn').onclick=()=>{st.hint=true;sfx('tap');render();};
+  }else{
+    const why=p.missing.map(g=>`${PROBLEMS[g].why} <span class="zh">${PROBLEMS[g].whyzh}</span>`).join('<br>');
+    const last=st.idx+1>=st.total;
+    a.innerHTML=`<div class="txt"><span class="stepname" style="color:var(--good)">Cured! 治好了！</span><span class="frame" style="font-size:clamp(17px,1.4vw,26px)">${why}</span></div>
+      <div class="btns"><button class="btn primary" type="button" id="nextBtn">${last?'See results':'Next patient →'}</button></div>`;
+    $('nextBtn').onclick=next;
+  }
+  // role panels: who is the patient, who is the doctor, and what each one does
+  const di=docIdx();
+  const docPts=di>=0?st.players[di].score:0;
+  const patCue=st.phase==='cured'?`Read: “Thank you, Doctor!” <span class="zh">唸：謝謝醫生！</span>`
+    :`Read the speech bubble aloud. <span class="zh">大聲唸出對話框。</span>`;
+  $('patRole').innerHTML=`<span class="rtag">Patient 病人</span><span class="rname">${st.phase==='pick'?'?':esc(p.person.name)}</span>${st.phase==='pick'?'':`<span class="rcue">${patCue}</span>`}`;
+  const docName=esc(p.doctor||'');
+  const docCue={pick:'',diagnose:`Find the empty space. <span class="zh">找出空格。</span>`,treat:`Pick the missing food. <span class="zh">選出缺少的食物。</span>`,cured:`Great job, Doctor! <span class="zh">做得好！</span>`}[st.phase];
+  $('docRole').innerHTML=`<span class="rtag">Doctor 醫生</span><span class="rname">${st.phase==='pick'?'?':docName}</span>${st.phase!=='pick'?`<span class="rteam">${docPts} pts</span>`:''}${docCue?`<span class="rcue">${docCue}</span>`:''}`;
+  // shelf
+  const locked=st.phase!=='treat';
+  const shelf=$('shelf');
+  shelf.className='shelf'+(locked?' locked':'');
+  shelf.innerHTML=st.shelfOrder.map(id=>{const f=F[id];return `<div class="food${st.selected===id?' sel':''}" data-id="${id}" role="button" tabindex="${locked?-1:0}" aria-label="${f.en}">${icon(id)}<span class="fn">${esc(f.en)}</span><span class="fz">${f.zh}</span></div>`;}).join('');
+  $('lock').hidden=!locked||st.phase==='cured';
+}
+
+/* ---------- play logic ---------- */
+function attempt(fid,slotG){
+  const p=cur();
+  if(st.phase!=='treat'||p.tray[slotG]) return;
+  const f=F[fid];
+  const slotEl=document.querySelector(`.slot[data-g="${slotG}"]`);
+  st.selected=null;
+  if(f.g!==slotG){
+    st.wrong++;st.perfect=false;
+    if(f.g==='junk') st.msg={kind:'bad',en:`${cap(f.en)} is junk food! No, thank you!`,zh:`${f.zh}是垃圾食物！不，謝謝！`};
+    else st.msg={kind:'bad',en:`Hmm, I still feel bad… ${cap(f.en)} is ${G[f.g].en}, not ${G[slotG].en}.`,zh:`${f.zh}是${G[f.g].zh}，不是${G[slotG].zh}。`};
+    if(st.wrong>=2) st.hint=true;
+    sfx('wrong');render();
+    const el=document.querySelector(`.slot[data-g="${slotG}"]`); if(el){el.classList.add('shake');}
+    return;
+  }
+  p.tray[slotG]=fid;st.justFilled=slotG;
+  const left=p.missing.filter(g=>!p.tray[g]);
+  if(left.length===0){
+    st.phase='cured';st.msg=null;st.hint=false;
+    const pts=st.perfect?2:1;
+    const ti=docIdx();
+    if(ti>=0) st.players[ti].score+=pts;
+    const before=level();st.cured++;const after=level();
+    sfx('cheer');render();confetti();
+    const chip=$('chip'+ti); if(chip){const s=document.createElement('span');s.className='float';s.textContent='+'+pts;chip.appendChild(s);}
+    if(st.perfect) toast('Perfect! +2');
+    if(after>before) setTimeout(()=>{toast('Clinic level up! '+'★'.repeat(after));sfx('level');},1300);
+  }else{
+    st.msg={kind:'good',en:`Yes! ${cap(f.en)} is ${G[slotG].en}. One more, please!`,zh:`對！${f.zh}是${G[slotG].zh}。再一個！`};
+    sfx('ding');render();
+  }
+}
+
+function next(){
+  st.idx++;
+  if(st.idx>=st.total){endGame();return;}
+  startRound();
+}
+
+function endGame(){
+  const ranked=st.players.slice().sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
+  const top=ranked[0].score;
+  const winners=ranked.filter(t=>t.score===top);
+  $('winner').textContent=winners.length>1?`Top doctors: ${winners.map(w=>w.name).join(', ')}!`:`Top doctor: ${winners[0].name}!`;
+  $('curedLine').textContent=`Your clinic cured ${st.cured} patient${st.cured===1?'':'s'}. 你們治好了 ${st.cured} 位病人！`;
+  $('podium').innerHTML=ranked.map((t,r)=>`<div class="rank${t.score===top?' first':''}"><span class="n">${r+1}</span><span>${esc(t.name)}</span><span class="s">${t.score} pts</span></div>`).join('');
+  show('end');sfx('cheer');confetti();
+}
+
+/* ---------- drag & tap ---------- */
+let drag=null;
+$('shelf').addEventListener('pointerdown',e=>{
+  const el=e.target.closest('.food'); if(!el||st.phase!=='treat') return;
+  e.preventDefault();
+  drag={id:el.dataset.id,x:e.clientX,y:e.clientY,moved:false,ghost:null,over:null};
+  el.setPointerCapture(e.pointerId);
+});
+$('shelf').addEventListener('pointermove',e=>{
+  if(!drag) return;
+  if(!drag.moved && Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){
+    drag.moved=true;const g=document.createElement('div');g.className='ghost';g.innerHTML=icon(drag.id);document.body.appendChild(g);drag.ghost=g;
+  }
+  if(drag.moved){
+    drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px';
+    const under=document.elementFromPoint(e.clientX,e.clientY);
+    const slot=under&&under.closest('.slot.empty');
+    if(drag.over&&drag.over!==slot) drag.over.classList.remove('over');
+    if(slot){slot.classList.add('over');} drag.over=slot;
+  }
+});
+function endDrag(e,cancel){
+  if(!drag) return;
+  const d=drag;drag=null;
+  if(d.ghost) d.ghost.remove();
+  if(d.over) d.over.classList.remove('over');
+  if(cancel) return;
+  if(d.moved){ if(d.over) attempt(d.id,d.over.dataset.g); }
+  else { st.selected=st.selected===d.id?null:d.id; sfx('tap'); render(); }
+}
+$('shelf').addEventListener('pointerup',e=>endDrag(e,false));
+$('shelf').addEventListener('pointercancel',e=>endDrag(e,true));
+$('shelf').addEventListener('keydown',e=>{
+  const el=e.target.closest('.food'); if(!el||st.phase!=='treat') return;
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();st.selected=el.dataset.id;render();const s=document.querySelector('.slot.empty');if(s){s.setAttribute('tabindex','0');s.focus();}}
+});
+$('tray').addEventListener('click',e=>{
+  const slot=e.target.closest('.slot.empty'); if(!slot||!st.selected) return;
+  attempt(st.selected,slot.dataset.g);
+});
+$('tray').addEventListener('keydown',e=>{
+  const slot=e.target.closest('.slot.empty'); if(!slot||!st.selected) return;
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();attempt(st.selected,slot.dataset.g);}
+});
+$('tray').addEventListener('animationend',e=>{if(e.target.classList)e.target.classList.remove('shake');});
+
+/* ---------- controls ---------- */
+$('skipBtn').onclick=()=>{ if(st.phase==='cured'){next();return;} next(); };
+$('endBtn').onclick=()=>{ endGame(); };
+$('soundBtn').onclick=()=>{ st.sound=!st.sound; render(); };
+$('voiceBtn').onclick=()=>{ st.voice=!st.voice; if(!st.voice){try{speechSynthesis.cancel();}catch(e){}} render(); };
+$('musicBtn').onclick=()=>{ st.music=!st.music; st.music?startMusic():stopMusic(); render(); };
+$('fsBtn').onclick=toggleFS;
+$('fsBtn2').onclick=toggleFS;
+$('againBtn').onclick=()=>{ stopMusic(); show('start'); };
+$('startBtn').onclick=()=>{ unlockAudio(); newGame(); };
+$('patientNames').addEventListener('input',updatePatientNote);
+let lastClass=null;
+$('classSel').addEventListener('focus',()=>{lastClass=$('classSel').value;});
+$('classSel').addEventListener('change',()=>{
+  // keep what was typed for the class we are leaving, then load the new one
+  if(lastClass){const keep=$('classSel').value;$('classSel').value=lastClass;saveClass();$('classSel').value=keep;}
+  loadClass($('classSel').value);lastClass=$('classSel').value;
+});
+
+/* ---------- toast, confetti, sound ---------- */
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2300);}
+function confetti(){
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const box=document.createElement('div');box.className='confetti';
+  const cols=['#F6D58E','#F4B6A6','#CFE0F5','#BFE3C2','#FFD1DC','#E8D5B9','#EF6C4A','#2E8C68'];
+  for(let i=0;i<46;i++){const c=document.createElement('i');c.style.left=Math.random()*100+'%';c.style.background=cols[i%cols.length];
+    c.style.animationDelay=(Math.random()*.4)+'s';c.style.animationDuration=(1.2+Math.random()*.8)+'s';box.appendChild(c);}
+  document.body.appendChild(box);setTimeout(()=>box.remove(),2600);
+}
+let ac=null,master=null;
+function unlockAudio(){try{if(!ac){const C=window.AudioContext||window.webkitAudioContext;if(C){ac=new C();master=ac.createGain();master.gain.value=1.6;master.connect(ac.destination);}}if(ac&&ac.state==='suspended')ac.resume();}catch(e){}}
+function tone(f,t0,d,type,vol){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type=type||'sine';o.frequency.value=f;
+  g.gain.setValueAtTime(0.0001,ac.currentTime+t0);g.gain.exponentialRampToValueAtTime(vol||0.2,ac.currentTime+t0+0.02);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t0+d);
+  o.connect(g);g.connect(master||ac.destination);o.start(ac.currentTime+t0);o.stop(ac.currentTime+t0+d+0.05);}
+
+/* background music: a soft, cheerful loop made in the browser */
+const MEL=[523,659,784,659,587,659,523,0,587,659,784,880,784,659,587,0,659,784,880,784,659,587,523,0,587,523,587,659,523,0,0,0];
+const BASS=[131,131,196,196,175,175,196,196,131,131,196,196,147,147,196,131];
+let musicT=null,mStep=0;
+function startMusic(){
+  unlockAudio(); if(!ac||musicT) return; mStep=0;
+  musicT=setInterval(()=>{
+    const f=MEL[mStep%MEL.length]; if(f) tone(f,0,.22,'triangle',.045);
+    if(mStep%2===0) tone(BASS[(mStep/2)%BASS.length],0,.45,'sine',.06);
+    mStep++;
+  },260);
+}
+function stopMusic(){clearInterval(musicT);musicT=null;}
+
+/* voice: the browser reads English sentences aloud */
+let voices=[];
+function loadVoices(){try{voices=window.speechSynthesis?speechSynthesis.getVoices():[];}catch(e){voices=[];}}
+if('speechSynthesis' in window){loadVoices();try{speechSynthesis.onvoiceschanged=loadVoices;}catch(e){}}
+function speak(text,lang,force){
+  if(!('speechSynthesis' in window)) { if(force) toast('This browser has no voice. 此瀏覽器沒有語音'); return; }
+  if(!force&&(!st||!st.voice)) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);u.lang=lang||'en-US';u.rate=.85;u.pitch=1.1;
+    const v=voices.find(x=>x.lang===u.lang)||voices.find(x=>x.lang&&x.lang.slice(0,2)===u.lang.slice(0,2));
+    if(v) u.voice=v;
+    const btn=$('listenBtn'); if(btn){btn.classList.add('playing');u.onend=()=>{const b2=$('listenBtn');if(b2)b2.classList.remove('playing');};}
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* full screen */
+function toggleFS(){
+  const d=document,el=d.documentElement;
+  try{
+    if(d.fullscreenElement||d.webkitFullscreenElement){(d.exitFullscreen||d.webkitExitFullscreen).call(d);return;}
+    const req=el.requestFullscreen||el.webkitRequestFullscreen;
+    if(!req){toast('Press F11 for full screen · 按 F11');return;}
+    const r=req.call(el); if(r&&r.catch) r.catch(()=>toast('Press F11 for full screen · 按 F11'));
+  }catch(e){toast('Press F11 for full screen · 按 F11');}
+}
+function fsLabel(){
+  const on=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  $('fsBtn').textContent=on?'Exit full screen':'Full screen';
+  $('fsBtn2').textContent=on?'Exit full screen 離開全螢幕':'Full screen 全螢幕';
+}
+document.addEventListener('fullscreenchange',fsLabel);
+document.addEventListener('webkitfullscreenchange',fsLabel);
+function sfx(k){
+  if(!st||!st.sound) return; unlockAudio(); if(!ac) return;
+  try{
+    if(k==='tap') tone(660,0,.08,'triangle',.12);
+    if(k==='tick') tone(1200,0,.03,'square',.04);
+    if(k==='ding'){tone(880,0,.18,'sine');tone(1320,.1,.25,'sine');}
+    if(k==='bell'){tone(1046,0,.5,'sine',.18);tone(1318,.15,.6,'sine',.14);}
+    if(k==='wrong'){tone(220,0,.18,'square',.1);tone(170,.15,.25,'square',.1);}
+    if(k==='cheer'){[523,659,784,1047].forEach((f,i)=>tone(f,i*.1,.3,'triangle',.18));}
+    if(k==='level'){[784,988,1175,1568].forEach((f,i)=>tone(f,i*.08,.25,'sine',.16));}
+  }catch(e){}
+}
+
+/* ---------- teacher name ---------- */
+const TEACHER='Joyce';
+$('teacherBadge').textContent=`Teacher ${TEACHER}’s Health Class`;
+$('teacherSub').textContent=`Teacher ${TEACHER}’s Health Class`;
+$('byeLine').textContent=`See you next time! 下次見！ — Teacher ${TEACHER}`;
+
+/* ---------- hero art & boot ---------- */
+$('heroArt').innerHTML=kidSVG(PEOPLE[0],'sad')+['rice','egg','milk','broccoli','banana','peanuts'].map(icon).join('').replace(/<svg /g,'<svg style="width:clamp(54px,5vw,84px)" ');
+(function(){const o=readStore();if(o._last){$('classSel').value=o._last;}loadClass($('classSel').value);lastClass=$('classSel').value;})();
+
+function start(data){
+  if(data&&data.st&&data.st.players&&data.st.patients){st=data.st;
+    if(st.screen==='game'){show('game');render();if(st.phase==='pick')runPicker();}
+    else if(st.screen==='end'){endGame();}}
+}
+try{window.claude?.hot?.snapshot(()=>({st}));}catch(e){}
+try{window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});}catch(e){}
+})();
+</script>
+
+</body></html>
